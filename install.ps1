@@ -71,7 +71,7 @@ param(
   # closing its window only hides it in the tray, so every process is stopped, then Discord is
   # started the way its shortcut does, which picks the newest installed version.
   function Restart-Discord($flavour) {
-    $running = Get-Process -Name $flavour.Exe -ErrorAction SilentlyContinue
+    $running = @(Get-Process -Name $flavour.Exe -ErrorAction SilentlyContinue)
     if (-not $running) {
       Write-Host "$($flavour.Name) isn't running; the change applies the next time you start it."
       return $false
@@ -81,14 +81,26 @@ param(
       return $false
     }
     Write-Host "Restarting $($flavour.Name)..."
+    # Track these exact processes (id + start time): Discord may be opened again while we wait, and
+    # a new instance must not be mistaken for the old one still running.
+    $ids = $running.Id
+    $keys = $running | ForEach-Object { "$($_.Id)|$($_.StartTime.Ticks)" }
+    $stillRunning = {
+      @(Get-Process -Id $ids -ErrorAction SilentlyContinue | Where-Object { $keys -contains "$($_.Id)|$($_.StartTime.Ticks)" }).Count -gt 0
+    }
     $running | Stop-Process -Force -ErrorAction SilentlyContinue
-    Wait-Process -Name $flavour.Exe -Timeout 20 -ErrorAction SilentlyContinue
-    if (Get-Process -Name $flavour.Exe -ErrorAction SilentlyContinue) {
+    $deadline = (Get-Date).AddSeconds(20)
+    while ((& $stillRunning) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 250 }
+    if (& $stillRunning) {
       Write-Host "$($flavour.Name) didn't close. Quit it from its tray icon and start it again." -ForegroundColor Yellow
       return $false
     }
-    $updater = Join-Path (Join-Path $env:LOCALAPPDATA $flavour.Dir) 'Update.exe'
-    Start-Process -FilePath $updater -ArgumentList '--processStart', "$($flavour.Exe).exe"
+    if (Get-Process -Name $flavour.Exe -ErrorAction SilentlyContinue) {
+      Write-Host "$($flavour.Name) was already opened again."
+    } else {
+      $updater = Join-Path (Join-Path $env:LOCALAPPDATA $flavour.Dir) 'Update.exe'
+      Start-Process -FilePath $updater -ArgumentList '--processStart', "$($flavour.Exe).exe"
+    }
     return $true
   }
 
