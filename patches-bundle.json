@@ -1,7 +1,7 @@
 {
-  "version": "0.4.0",
-  "download_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/download/v0.4.0/patches-0.4.0.mpp",
-  "page_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/tag/v0.4.0",
-  "created_at": "2026-11-18T23:24:15",
-  "description": "Hides Nitro upsell popups too (such as \"Style your display name\"), as well as partner games' account link promos. Turn off \"Hide Nitro upsells\" in the De-enshittify patch's options to keep them."
+  "version": "0.4.1",
+  "download_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/download/v0.4.1/patches-0.4.1.mpp",
+  "page_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/tag/v0.4.1",
+  "created_at": "2026-11-18T23:30:43",
+  "description": "Morphe now lists Discord Renewed as Discord's patched install instead of a separate clone."
 }
