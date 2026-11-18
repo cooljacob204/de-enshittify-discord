@@ -1,7 +1,7 @@
 {
-  "version": "0.3.2",
-  "download_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/download/v0.3.2/patches-0.3.2.mpp",
-  "page_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/tag/v0.3.2",
-  "created_at": "2026-11-18T23:05:46",
-  "description": "Morphe now links straight to Discord on APKMirror instead of a Google search, and patches the newest Discord version."
+  "version": "0.4.0",
+  "download_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/download/v0.4.0/patches-0.4.0.mpp",
+  "page_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/tag/v0.4.0",
+  "created_at": "2026-11-18T23:24:15",
+  "description": "Hides Nitro upsell popups too (such as \"Style your display name\"), as well as partner games' account link promos. Turn off \"Hide Nitro upsells\" in the De-enshittify patch's options to keep them."
 }
