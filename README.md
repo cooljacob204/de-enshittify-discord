@@ -82,8 +82,8 @@ the client.
 Tests, neither of which touches the real Discord:
 
 ```sh
-node --test test/          # src/heal.js against copies of Discord's install layout
-test/install.test.sh       # install.ps1 install, self-healing and uninstall on a fake Discord install
+node --test test/heal.test.mjs   # src/heal.js against copies of Discord's install layout
+test/install.test.sh             # install.ps1 install, self-healing and uninstall on a fake Discord install
 ```
 
 ## How it works
