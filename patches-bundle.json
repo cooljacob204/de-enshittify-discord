@@ -1,6 +1,7 @@
 {
   "version": "0.3.1",
   "download_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/download/android-v0.3.1/patches-0.3.1.mpp",
-  "created_at": "2026-11-18T22:43:47Z",
+  "page_url": "https://github.com/cooljacob204/de-enshittify-discord/releases/tag/android-v0.3.1",
+  "created_at": "2026-11-18T22:43:47",
   "description": "First Android release: removes Quests, the Shop, the Orbs card and ad popups from Discord for Android. Add this repository as a source in Morphe to use it."
 }

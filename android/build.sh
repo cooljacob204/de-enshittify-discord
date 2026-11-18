@@ -66,8 +66,11 @@ case ${1:-build} in
     notes=${NOTES:-"de-enshittify discord for Android $version"}
     gh release create "$tag" "$bundle" --title "Android $version" --notes "$notes"
     url=$(gh release view "$tag" --json assets --jq '.assets[] | select(.name | endswith(".mpp")) | .url')
-    jq -n --arg version "$version" --arg url "$url" --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg notes "$notes" \
-      '{version: $version, download_url: $url, created_at: $date, description: $notes}' > "$repo/patches-bundle.json"
+    page=$(gh release view "$tag" --json url --jq .url)
+    # Morphe Manager reads created_at as a local date-time in UTC: no "Z" or offset, or it rejects the
+    # whole file. page_url is the release page (it would otherwise guess one from the version).
+    jq -n --arg version "$version" --arg url "$url" --arg page "$page" --arg date "$(date -u +%Y-%m-%dT%H:%M:%S)" --arg notes "$notes" \
+      '{version: $version, download_url: $url, page_url: $page, created_at: $date, description: $notes}' > "$repo/patches-bundle.json"
     git -C "$repo" add patches-bundle.json
     git -C "$repo" commit -q -m "Release Android $version"
     git -C "$repo" push -q
