@@ -38,7 +38,8 @@ restarts Discord if it's running (which drops you from any voice call), and wait
 confirm the patches loaded. It works for Discord, Discord PTB and Discord Canary, and alongside
 BetterDiscord. You can [read the script](install.ps1) before running it.
 
-Run the same line again after a Discord update to re-apply it or to get the latest patches.
+It stays applied when Discord updates itself. Run the same line again any time to get the latest
+patches.
 
 ### Uninstall
 
@@ -54,8 +55,11 @@ enabled, the console shows the same under `[de-enshittify-discord]`.
 
 ## After Discord updates
 
-- **Desktop updates** (a new `app-x.y.z` folder) replace the startup files that load the patch, so
-  Quests and the Shop come back. Run the install line again.
+- **Desktop updates** install into a new `app-x.y.z` folder, without the hook. The patch handles
+  that itself: when Discord's updater finishes installing a new version, and whenever Discord
+  quits, it hooks the new version before it first runs. What it did is logged in
+  `%APPDATA%\de-enshittify-discord\heal.log`. If Quests and the Shop ever come back after an
+  update anyway, run the install line again.
 - **Web updates** (frequent) can change the code a patch targets. A patch that no longer matches is
   skipped and reported, and only that part of Discord comes back; the client keeps working. Those
   need a fix here, and running the install line again picks it up.
@@ -75,6 +79,13 @@ enabled, the console shows the same under `[de-enshittify-discord]`.
 newer: it downloads Discord's current web build and tests every patch against it without touching
 the client.
 
+Tests, neither of which touches the real Discord:
+
+```sh
+node --test test/          # src/heal.js against copies of Discord's install layout
+test/install.test.sh       # install.ps1 install, self-healing and uninstall on a fake Discord install
+```
+
 ## How it works
 
 1. `install.ps1` copies `src/` to `%APPDATA%\de-enshittify-discord\` and adds one guarded `require` line
@@ -82,7 +93,12 @@ the client.
    and also `resources\app\index.js` when another mod (such as BetterDiscord) has set that up. If
    the folder is ever removed, the line fails quietly and Discord starts normally.
 2. `src/loader.js` (main process) registers `src/preload.js` as a session preload. It doesn't replace
-   `BrowserWindow`, so it coexists with mods that do.
+   `BrowserWindow`, so it coexists with mods that do. It also runs `src/heal.js`, which keeps the
+   hook in the running version and any newer one: at startup, when Discord's updater emits
+   `host-updated`, and when Discord quits. Desktop updates are installed before Discord's core
+   loads, so without another mod it also creates a small `resources\app` redirect (Electron loads
+   it before `resources\app.asar`) that loads the patch and then Discord's untouched `app.asar`.
+   That makes the loader run early enough to catch the update. Uninstalling removes it.
 3. `src/preload.js` injects `src/renderer.js` into the page before Discord's own scripts load.
 4. `src/renderer.js` catches each webpack runtime's `__webpack_require__.m = modules` assignment (the
    page has several; the main one loads last). It rewrites the source of the few modules that

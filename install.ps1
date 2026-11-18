@@ -10,9 +10,10 @@ de-enshittify discord: installer for the Windows Discord desktop client.
   Options: -Uninstall, -NoRestart (leave Discord running), -Source <folder> (install loader.js,
   preload.js and renderer.js from a local folder instead of downloading them).
 
-It copies three files to %APPDATA%\de-enshittify-discord, adds one marked line at the top of
-Discord's startup files to load them, and restarts Discord if it's running (that drops you from
-any voice call). It works for Discord, Discord PTB and Discord Canary.
+It copies the patch to %APPDATA%\de-enshittify-discord, adds one marked line at the top of
+Discord's startup files to load it, and restarts Discord if it's running (that drops you from any
+voice call). From then on the patch re-applies itself when Discord updates (src/heal.js). It works
+for Discord, Discord PTB and Discord Canary.
 #>
 param(
   [switch]$Uninstall,
@@ -24,10 +25,11 @@ param(
   $ErrorActionPreference = 'Stop'
   $ProgressPreference = 'SilentlyContinue'
   $raw = 'https://raw.githubusercontent.com/cooljacob204/de-enshittify-discord/main'
-  $files = @('loader.js', 'preload.js', 'renderer.js')
+  $files = @('loader.js', 'preload.js', 'renderer.js', 'heal.js')
   $dest = Join-Path $env:APPDATA 'de-enshittify-discord'
   $statusFile = Join-Path $dest 'status.json'
   $marker = '// de-enshittify-discord-hook'
+  $redirectMarker = '// de-enshittify-discord-redirect'
   $hook = 'try{require(require("path").join(process.env.APPDATA,"de-enshittify-discord","loader.js"))}catch(e){console.error("[de-enshittify-discord] hook failed:",e)} ' + $marker
   $utf8 = New-Object System.Text.UTF8Encoding $false
 
@@ -111,10 +113,21 @@ param(
     }
 
     if ($Uninstall) {
-      foreach ($flavour in $flavours) {
-        foreach ($file in Get-StartupFiles $flavour) { Set-Hook $file $false }
-      }
+      # Removing the install folder first also stops a running Discord's self-healing from putting
+      # the hook back when it quits.
       if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+      foreach ($flavour in $flavours) {
+        foreach ($file in Get-StartupFiles $flavour) {
+          if ([IO.File]::ReadAllText($file).Contains($redirectMarker)) {
+            # Our own resources\app redirect (made by heal.js); Discord falls back to app.asar.
+            $dir = Split-Path $file
+            Remove-Item $dir -Recurse -Force
+            Write-Host "  removed $dir"
+          } else {
+            Set-Hook $file $false
+          }
+        }
+      }
       Write-Host 'Removed de-enshittify discord.' -ForegroundColor Green
       foreach ($flavour in $flavours) { [void](Restart-Discord $flavour) }
       return

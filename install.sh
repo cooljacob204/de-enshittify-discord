@@ -54,9 +54,11 @@ case $cmd in
     ;;
   status)
     while IFS= read -r f; do
-      if grep -qF -- "$marker" "$f"; then echo "hooked:     $f"; else echo "not hooked: $f"; fi
+      kind=""
+      grep -qF -- '// de-enshittify-discord-redirect' "$f" && kind=" (redirect made by heal.js)"
+      if grep -qF -- "$marker" "$f"; then echo "hooked:     $f$kind"; else echo "not hooked: $f"; fi
     done < <(targets)
-    for n in loader.js preload.js renderer.js; do
+    for n in loader.js preload.js renderer.js heal.js; do
       if [[ ! -f $dest/$n ]]; then echo "missing:    $dest/$n"
       elif ! cmp -s "$here/src/$n" "$dest/$n"; then echo "differs:    $dest/$n (from this checkout's src/)"
       fi
@@ -66,6 +68,10 @@ case $cmd in
       cat "$dest/status.json"; echo
     else
       echo "no report from the client yet (it writes one about 20s after Discord starts)"
+    fi
+    if [[ -f $dest/heal.log ]]; then
+      echo "self-healing log ($dest/heal.log, last 10 lines):"
+      tail -n 10 "$dest/heal.log"
     fi
     ;;
   check)
