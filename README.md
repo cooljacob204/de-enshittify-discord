@@ -25,52 +25,59 @@ targets, that patch steps aside: the feature comes back and the client keeps wor
 
 Nitro, server shops and everything else are untouched.
 
-## Requirements
-
-- Discord desktop (stable) for Windows, installed in the default location (`%LOCALAPPDATA%\Discord`).
-- WSL with bash, since the installer runs from WSL and edits the Windows install.
-- Node.js 18 or newer in WSL, only for `./install.sh check`.
-
-It works alongside BetterDiscord.
-
 ## Install
 
-```sh
-git clone <this repo> && cd de-enshittify-discord
-./install.sh
+Open PowerShell (right-click Start, then **Terminal**) and paste:
+
+```powershell
+irm https://raw.githubusercontent.com/cooljacob204/de-enshittify-discord/main/install.ps1 | iex
 ```
 
-If Discord is running, the installer restarts it so the patch loads. That drops you from any voice
-call; add `--no-restart` to skip it and restart Discord yourself later (quit from the tray icon,
-since closing the window isn't enough). A page reload (Ctrl+R) isn't enough either, because Discord
-only picks up the hook when its main process starts.
+That's it. The installer copies the patch to `%APPDATA%\de-enshittify-discord`, hooks Discord,
+restarts Discord if it's running (which drops you from any voice call), and waits for Discord to
+confirm the patches loaded. It works for Discord, Discord PTB and Discord Canary, and alongside
+BetterDiscord. You can [read the script](install.ps1) before running it.
 
-About 20 seconds after Discord starts, it writes `%APPDATA%\de-enshittify-discord\status.json` listing
-which patches applied and which ad popups it blocked. `./install.sh status` prints it. If Discord's
-developer tools are enabled, the console shows the same under `[de-enshittify-discord]`.
+Run the same line again after a Discord update to re-apply it or to get the latest patches.
 
-## Commands
+### Uninstall
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/cooljacob204/de-enshittify-discord/main/install.ps1))) -Uninstall
+```
+
+### Checking it
+
+About 20 seconds after Discord starts, the patch writes `%APPDATA%\de-enshittify-discord\status.json`
+listing which patches applied and which ad popups it blocked. If Discord's developer tools are
+enabled, the console shows the same under `[de-enshittify-discord]`.
+
+## After Discord updates
+
+- **Desktop updates** (a new `app-x.y.z` folder) replace the startup files that load the patch, so
+  Quests and the Shop come back. Run the install line again.
+- **Web updates** (frequent) can change the code a patch targets. A patch that no longer matches is
+  skipped and reported, and only that part of Discord comes back; the client keeps working. Those
+  need a fix here, and running the install line again picks it up.
+
+## Development (WSL)
+
+`install.sh` runs the same `install.ps1`, but installs this checkout's `src/` instead of downloading:
 
 ```sh
-./install.sh            # install, or re-apply after a Discord desktop update; restarts Discord
+./install.sh            # install src/ from this checkout; restarts Discord
 ./install.sh status     # are the hooks in place? what did the client last report?
 ./install.sh check      # do the patches still match Discord's current web build? (changes nothing)
 ./install.sh uninstall  # remove the hooks and the installed files; restarts Discord
 ```
 
-`install` and `uninstall` take `--no-restart` to leave Discord running.
-
-## After Discord updates
-
-- **Web updates** (frequent) can change the code a patch targets. A patch that no longer matches is
-  skipped and reported, and that feature reappears. `./install.sh check` downloads Discord's
-  current web build and tests every patch against it without touching your client.
-- **Desktop updates** (a new `app-x.y.z` folder) replace the startup files that load this. Run
-  `./install.sh` again (it restarts Discord). `./install.sh status` shows whether the hooks are there.
+`install` and `uninstall` take `--no-restart` to leave Discord running. `check` needs Node.js 18 or
+newer: it downloads Discord's current web build and tests every patch against it without touching
+the client.
 
 ## How it works
 
-1. `install.sh` copies `src/` to `%APPDATA%\de-enshittify-discord\` and adds one guarded `require` line
+1. `install.ps1` copies `src/` to `%APPDATA%\de-enshittify-discord\` and adds one guarded `require` line
    at the top of Discord's startup files: `modules\discord_desktop_core-*\discord_desktop_core\index.js`,
    and also `resources\app\index.js` when another mod (such as BetterDiscord) has set that up. If
    the folder is ever removed, the line fails quietly and Discord starts normally.
@@ -92,7 +99,7 @@ Each patch is all-or-nothing. It has a `find` string that picks the module and o
    replacement step stopped matching.
 2. Find the new shape of that code in Discord's current bundle, then update the patch's `find` or
    regex in `src/renderer.js`.
-3. Run `./install.sh check` until it passes, then `./install.sh` and restart Discord.
+3. Run `./install.sh check` until it passes, then `./install.sh` to try it in Discord.
 
 ## License
 
