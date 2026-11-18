@@ -53,7 +53,7 @@ case ${1:-build} in
     echo "patched: $out (for your own phone only: it contains Discord's code, don't share it)"
     ;;
   release)
-    tag="android-v$version"
+    tag="v$version"
     if gh release view "$tag" >/dev/null 2>&1; then
       echo "$tag is already released; bump version in gradle.properties first" >&2
       exit 1
@@ -64,7 +64,7 @@ case ${1:-build} in
     fi
     build
     notes=${NOTES:-"de-enshittify discord for Android $version"}
-    gh release create "$tag" "$bundle" --title "Android $version" --notes "$notes"
+    gh release create "$tag" "$bundle" --title "v$version" --notes "$notes"
     url=$(gh release view "$tag" --json assets --jq '.assets[] | select(.name | endswith(".mpp")) | .url')
     page=$(gh release view "$tag" --json url --jq .url)
     # Morphe Manager reads created_at as a local date-time in UTC: no "Z" or offset, or it rejects the
@@ -72,7 +72,7 @@ case ${1:-build} in
     jq -n --arg version "$version" --arg url "$url" --arg page "$page" --arg date "$(date -u +%Y-%m-%dT%H:%M:%S)" --arg notes "$notes" \
       '{version: $version, download_url: $url, page_url: $page, created_at: $date, description: $notes}' > "$repo/patches-bundle.json"
     git -C "$repo" add patches-bundle.json
-    git -C "$repo" commit -q -m "Release Android $version"
+    git -C "$repo" commit -q -m "Release v$version"
     git -C "$repo" push -q
     echo "released $tag; Morphe Manager picks it up from patches-bundle.json"
     ;;
