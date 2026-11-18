@@ -1,17 +1,27 @@
 # de-enshittify discord
 
-Removes Quests, the Shop and ad popups from the Windows Discord desktop client.
+Removes Quests, the Shop and ad popups from Discord: the Windows desktop client and Discord for
+Android.
 
-It doesn't hide anything with CSS. It rewrites a few of Discord's own JavaScript modules just before
-they run, so the Quests and Shop entry points are never created, the quest store never receives
-quests, and ad popups are treated as already dismissed. When Discord changes the code a patch
-targets, that patch steps aside: the feature comes back and the client keeps working.
+Neither hides anything with CSS or by covering it up. Both change Discord's own code as it loads, so
+the Quests and Shop entry points are never created, the quest store never receives quests, and ad
+popups are treated as already dismissed. When Discord changes the code a patch targets, that patch
+steps aside: the feature comes back and the app keeps working.
 
 > Not affiliated with or endorsed by Discord. Modifying the client is against Discord's Terms of
-> Service; use it at your own risk. This only removes UI and drops quest data on your machine. It
+> Service; use it at your own risk. This only removes UI and drops quest data on your device. It
 > doesn't fake quest progress or send anything Discord's own client wouldn't.
 
-## What it changes
+- [Windows](#windows): a one-line installer that patches the desktop app in place.
+- [Android](#android): a patch bundle for [Morphe](https://morphe.software), which builds a patched
+  copy of Discord on your phone.
+
+## Windows
+
+A small loader in Discord's startup files rewrites a few of Discord's webpack modules just before
+they run.
+
+### What it changes
 
 | Patch | Effect |
 |---|---|
@@ -25,7 +35,7 @@ targets, that patch steps aside: the feature comes back and the client keeps wor
 
 Nitro, server shops and everything else are untouched.
 
-## Install
+### Install
 
 Open PowerShell (right-click Start, then **Terminal**) and paste:
 
@@ -41,19 +51,19 @@ BetterDiscord. You can [read the script](install.ps1) before running it.
 It stays applied when Discord updates itself. Run the same line again any time to get the latest
 patches.
 
-### Uninstall
+#### Uninstall
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/cooljacob204/de-enshittify-discord/main/install.ps1))) -Uninstall
 ```
 
-### Checking it
+#### Checking it
 
 About 20 seconds after Discord starts, the patch writes `%APPDATA%\de-enshittify-discord\status.json`
 listing which patches applied and which ad popups it blocked. If Discord's developer tools are
 enabled, the console shows the same under `[de-enshittify-discord]`.
 
-## After Discord updates
+### After Discord updates
 
 - **Desktop updates** install into a new `app-x.y.z` folder, without the hook. The patch handles
   that itself: when Discord's updater finishes installing a new version, and whenever Discord
@@ -64,7 +74,7 @@ enabled, the console shows the same under `[de-enshittify-discord]`.
   skipped and reported, and only that part of Discord comes back; the client keeps working. Those
   need a fix here, and running the install line again picks it up.
 
-## Development (WSL)
+### Development (WSL)
 
 `install.sh` runs the same `install.ps1`, but installs this checkout's `src/` instead of downloading:
 
@@ -86,7 +96,7 @@ node --test test/heal.test.mjs   # src/heal.js against copies of Discord's insta
 test/install.test.sh             # install.ps1 install, self-healing and uninstall on a fake Discord install
 ```
 
-## How it works
+### How it works
 
 1. `install.ps1` copies `src/` to `%APPDATA%\de-enshittify-discord\` and adds one guarded `require` line
    at the top of Discord's startup files: `modules\discord_desktop_core-*\discord_desktop_core\index.js`,
@@ -109,13 +119,89 @@ test/install.test.sh             # install.ps1 install, self-healing and uninsta
 Each patch is all-or-nothing. It has a `find` string that picks the module and one or more
 `replace` steps. If any step no longer matches, the module loads exactly as Discord shipped it.
 
-## Fixing a broken patch
+### Fixing a broken patch
 
 1. Run `./install.sh check` to see which patch failed, and whether its anchor wasn't found or a
    replacement step stopped matching.
 2. Find the new shape of that code in Discord's current bundle, then update the patch's `find` or
    regex in `src/renderer.js`.
 3. Run `./install.sh check` until it passes, then `./install.sh` to try it in Discord.
+
+## Android
+
+A patch bundle for [Morphe](https://morphe.software), an open-source app patcher (a fork of
+ReVanced). Morphe patches Discord on your phone, and the patched app installs next to the official
+one as **Discord Renewed**, the way ReVanced and Morphe handle YouTube. This repository only
+publishes the patches: no Discord code, and no patched app.
+
+### Install
+
+1. Install Morphe from [morphe.software](https://morphe.software).
+2. In Morphe, open **Sources**, tap **+**, choose **Remote** and add
+   `https://github.com/cooljacob204/de-enshittify-discord`.
+3. Choose Discord and patch it. Morphe sends you to APKMirror for Discord's split bundle (`.apkm`),
+   checks that it's signed by Discord, merges and patches it on your phone, and installs it.
+
+Morphe tells you when there's a new version of these patches. When Discord updates, patch the new
+version the same way; Discord's frequent over-the-air updates to its JavaScript arrive by
+themselves. If a Discord update changes something a patch relies on, that patch steps aside and a
+short message names it.
+
+To use the Discord you installed from the Play Store instead of APKMirror, turn it into a single
+APK first (for example with [AntiSplit M](https://github.com/AbdurazaaqMohammed/AntiSplit-M)) and
+pick that file in Morphe.
+
+### What it changes
+
+| Patch | Effect |
+|---|---|
+| `quest-store-empty` | As on Windows: the quest store only keeps the server's "nothing for you" answers, so quest cards and promos have nothing to show. |
+| `quests-hidden` | Discord's own quest switch, the one it turns off on Meta Quest headsets, is off: no Quests button on the You screen, no quest dock above the bar at the bottom of the Messages screen (quests and the "Bounties" video ads), no quest entry points elsewhere. |
+| `orbs-hidden` | Discord's own Orbs switch, also off on Meta Quest, is off: no Orbs Balance card on the You screen and no Orb wallet. |
+| `shop-button` | The Shop button on the You screen is gone. |
+| `shop-settings-row` | The Shop row in Settings is gone. |
+| `popup-catalogue`, `popup-gate`, `popup-gate-shown`, `popup-gate-legacy` | As on Windows: ad popups, coachmarks and badges count as already dismissed, chosen by name from Discord's list of popup types. On Android that also covers Orbs onboarding, Bounties and Shop wishlist tips. Ad popups are never recorded as shown, so they don't use up Discord's daily popup limit. |
+
+Two more options in Morphe: **Change package name** (on by default) makes the patched app a separate
+app named "Discord Renewed" (both names can be changed), and **De-enshittify** is the patch itself.
+
+Not covered yet: the Wishlist tab and Shop links on profiles, quest cards for quest links in chat,
+and `discord.com/shop` and `discord.com/quests` links.
+
+### How it works
+
+1. The patch adds a small class to Discord with the script below embedded, and makes React Native's
+   two bundle loaders (for the bundle in the APK and for one Discord downloaded over the air) run it
+   just before Discord's own code.
+2. Discord's code is Hermes bytecode, so the script can't rewrite source like the Windows patch does.
+   It wraps Metro's module definitions (`__d`) and patches a module's exports right after the module
+   runs. Modules are picked by their source file path, which each module in Discord's bundle reports
+   as it finishes loading (such as `modules/quests/lib/QuestsEligibility.tsx`).
+3. The rename changes only the manifest: the package, the labels, and the provider authorities and
+   permissions that must be unique per phone. Discord's resource lookups go through a small added
+   helper, so a lookup under either package name finds Discord's resources.
+
+### Development
+
+`android/build.sh` (WSL or Linux) builds and tests the bundle. Building needs Java 17 or newer and a
+GitHub token with `read:packages`, which Morphe's Gradle plugin and patcher need to download
+(`gh auth refresh -h github.com -s read:packages`).
+
+```sh
+android/build.sh               # build android/patches/build/libs/patches-<version>.mpp
+android/build.sh test          # test the script against an imitation of Discord's module system
+android/build.sh patch FILE    # patch a Discord .apk/.apkm/.apks for your own phone (Java 21 + Morphe Desktop)
+android/build.sh release       # publish the bundle as a GitHub release and update patches-bundle.json
+```
+
+`release` publishes the version in `android/gradle.properties`, so bump it first. Morphe Manager
+reads `patches-bundle.json` at the root of this repository to find the newest bundle.
+
+The patch code is in `android/patches/src/main/kotlin/` and the script in
+`android/patches/src/main/resources/de-enshittify-discord.js`. To find what to patch in a new
+Discord version, decompile `assets/index.android.bundle` from its APK with
+[hermes-dec](https://github.com/P1sec/hermes-dec); most module paths and function names survive in
+the bytecode.
 
 ## License
 

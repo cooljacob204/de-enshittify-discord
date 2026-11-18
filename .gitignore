@@ -3,3 +3,9 @@ node_modules/
 status.json
 .DS_Store
 Thumbs.db
+
+# Patched or original Discord APKs are Discord's code: never commit them.
+*.apk
+*.apks
+*.apkm
+*.xapk

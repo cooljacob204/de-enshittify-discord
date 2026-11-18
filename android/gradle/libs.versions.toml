@@ -1,0 +1,10 @@
+[versions]
+morphe-patcher = "2.4.0"
+# Morphe's smali fork, as in Morphe's patches template.
+#noinspection GradleDependency
+smali = "5eaff5a2c9"
+
+[libraries]
+# The Gradle plugin adds the dependency; declared here so version updates are visible.
+#noinspection UnusedVersionCatalogEntry
+morphe-patcher = { module = "app.morphe:morphe-patcher", version.ref = "morphe-patcher" }
