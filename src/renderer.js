@@ -16,10 +16,24 @@
   if (globalThis.__deEnshittifyDiscord) return;
 
   // Popup, coachmark, badge and banner types (Discord's DismissibleContent enum) that are ads: quests,
-  // Orbs, the Shop and game storefronts, third-party partner offers ("3P"), marketing campaigns and
-  // promos. Matched by name, so new campaigns with these words are caught too. Discord's own feature
-  // notices and Nitro upsells aren't matched.
-  const BLOCKED_POPUPS = /(^|_)(QUESTS?|ORBS?|SHOP|COLLECTIBLES|STOREFRONT|3PP?|MARKETING|PROMOS?|BLACK_FRIDAY|DROPS?)(_|$)/;
+  // Orbs (also VIRTUAL_CURRENCY), Bounties, the Shop, wishlists and game storefronts, third-party
+  // partner offers ("3P") and partner games' account link promos, marketing campaigns and promos.
+  // Matched by name, so new campaigns with these words are caught too. The same rules as the Android
+  // patch (android/patches/src/main/resources/de-enshittify-discord.js).
+  const BLOCKED_POPUPS =
+    /(^|_)(QUESTS?|ORBS?|SHOP|COLLECTIBLES|STOREFRONT|3PP?|MARKETING|PROMOS?|BLACK_FRIDAY|DROPS?|VIRTUAL_CURRENCY|BOUNTY|BOUNTIES|WISHLIST)(_|$)/;
+  const PARTNER_GAME_PROMOS = /^(?!GAME_).*_ACCOUNT_LINK_UPSELL$/;
+  // Nitro upsells: promos for Nitro, Nitro-only features such as display name styles, trials, server
+  // boosts and power-ups, paid server subscriptions, potions, gifting promos and referral or discount
+  // offers. Popups for free features (AutoMod, forum channels, voice messages, passkeys...) aren't,
+  // and neither are notices about your own subscription (trial ending, reactivate).
+  const NITRO_UPSELLS =
+    /(^|_)(NITRO|PREMIUM|TRIALS?|POTION|BOGO|REFERRAL|DISCOUNT|PERMADECOS|POWERUP|BOOSTS?|BOOSTING|GIFTING_PROMOTION|ROLE_SUBSCRIPTION|SERVER_SUBSCRIPTION|CREATOR_MONETIZATION|MONTHLY_TO_YEARLY|FREE_USER)(_|$)|^DISPLAY_NAME_STYLES/;
+  const SUBSCRIPTION_NOTICES = /^NAGBAR_NOTICE_PREMIUM_(TIER_\w+_TRIAL_ENDING|REACTIVATE)$/;
+  const isBlockedPopup = (name) =>
+    BLOCKED_POPUPS.test(name) ||
+    PARTNER_GAME_PROMOS.test(name) ||
+    (NITRO_UPSELLS.test(name) && !SUBSCRIPTION_NOTICES.test(name));
   const popupNames = new Map(); // enum value -> name, read from the enum module's source
   const blockedPopupIds = new Set();
   const suppressed = new Set(); // names actually asked about (and refused) this session
@@ -131,7 +145,7 @@
         for (const m of src.matchAll(/\[[\w$]+\.([A-Z0-9_]+)=(\d+)\]="\1"/g)) {
           const id = Number(m[2]);
           popupNames.set(id, m[1]);
-          if (BLOCKED_POPUPS.test(m[1])) blockedPopupIds.add(id);
+          if (isBlockedPopup(m[1])) blockedPopupIds.add(id);
         }
         return blockedPopupIds.size > 0;
       },
