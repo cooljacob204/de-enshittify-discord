@@ -280,7 +280,7 @@ test('the startup check names patches that failed', () => {
   const changed = DISCORD_MODULES.replace('QUESTS_FETCH_QUEST_TO_DELIVER_SUCCESS:', 'QUESTS_RENAMED:');
   const { timers, toasts } = run(changed);
   timers.forEach((fn) => fn());
-  assert.deepEqual(toasts, ["de-enshittify 0.4.0: didn't apply: quest-store-empty"]);
+  assert.deepEqual(toasts, ["de-enshittify 0.4.1: didn't apply: quest-store-empty"]);
 });
 
 test('a patch that fails after startup says so right away, by name', () => {
@@ -288,7 +288,7 @@ test('a patch that fails after startup says so right away, by name', () => {
   const { context, timers, toasts } = run(changed);
   timers.forEach((fn) => fn());
   vm.runInContext('__r(12)', context); // the You screen is opened
-  assert.deepEqual(toasts, ["de-enshittify 0.4.0: shop-button didn't apply"]);
+  assert.deepEqual(toasts, ["de-enshittify 0.4.1: shop-button didn't apply"]);
 });
 
 test('Nitro upsells are hidden by default, but not notices about your own subscription', () => {

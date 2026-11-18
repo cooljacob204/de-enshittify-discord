@@ -13,7 +13,7 @@
   'use strict';
 
   var TAG = '[de-enshittify-discord]';
-  var VERSION = '0.4.0';
+  var VERSION = '0.4.1';
 
   var state = {
     version: VERSION,

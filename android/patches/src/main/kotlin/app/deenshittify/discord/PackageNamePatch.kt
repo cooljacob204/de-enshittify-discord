@@ -34,8 +34,11 @@ val packageNamePatch = patch(
 ) {
     compatibleWith(DISCORD)
 
+    // Not keyed "packageName": Morphe Manager files a build from a patch with that option as a clone the
+    // user asked for, listed apart from the app. This rename is what lets the patched app sit next
+    // to the official one, like Morphe's YouTube builds, so it's the app's own install.
     val packageName by stringOption(
-        key = "packageName",
+        key = "patchedPackageName",
         default = "app.deenshittify.discord",
         title = "Package name",
         description = "The patched app's package name. It must differ from $DISCORD_PACKAGE.",
