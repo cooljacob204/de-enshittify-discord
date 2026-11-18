@@ -6,8 +6,18 @@
 #   ./install.sh check      test the patches against Discord's current web build (no changes made)
 #   ./install.sh uninstall  remove the hooks and the installed files
 #
-# Changes take effect the next time Discord starts: quit it from the tray icon, then start it again.
+# install and uninstall restart Discord if it's running, so the change takes effect (this drops you
+# from any voice call). Add --no-restart to skip that and restart it yourself later.
 set -euo pipefail
+
+restart=1
+args=()
+for a in "$@"; do
+  case $a in
+    --no-restart) restart=0 ;;
+    *) args+=("$a") ;;
+  esac
+done
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 winenv() { wslpath "$(cd /mnt/c && cmd.exe /d /c "echo %$1%" | tr -d '\r')"; }
@@ -32,7 +42,38 @@ targets() {
 
 hooked() { grep -qF -- "$marker" "$1"; }
 
-cmd=${1:-install}
+winps() { (cd /mnt/c && powershell.exe -NoProfile -NonInteractive -Command "$1") | tr -d '\r'; }
+discord_running() { [[ -n $(winps 'Get-Process Discord -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Id') ]]; }
+
+# Discord only loads the hook when its main process starts, and a page reload (Ctrl+R) keeps using the
+# preload path registered at that start, so install/uninstall need a full restart. Closing the window
+# only hides Discord in the tray, so every Discord process is stopped, then it's started the way its
+# shortcut does (Update.exe --processStart), which picks the newest installed version.
+restart_discord() {
+  if [[ $restart == 0 ]]; then
+    echo "Restart Discord (tray icon > Quit Discord, then start it) to apply."
+    return
+  fi
+  if ! discord_running; then
+    echo "Discord isn't running; the change applies the next time it starts."
+    return
+  fi
+  echo "Restarting Discord..."
+  winps 'Stop-Process -Name Discord -Force -ErrorAction SilentlyContinue; Wait-Process -Name Discord -Timeout 20 -ErrorAction SilentlyContinue'
+  if discord_running; then
+    echo "Discord didn't close. Quit it from the tray icon and start it again." >&2
+    return 1
+  fi
+  winps '$u = Join-Path $env:LOCALAPPDATA "Discord\Update.exe"; Start-Process -FilePath $u -ArgumentList "--processStart","Discord.exe"; Start-Sleep -Seconds 5'
+  if discord_running; then
+    echo "Discord restarted."
+  else
+    echo "Discord didn't start again; start it from the Start menu." >&2
+    return 1
+  fi
+}
+
+cmd=${args[0]:-install}
 case $cmd in
   install)
     [[ -d $discord ]] || { echo "Discord isn't installed at $discord" >&2; exit 1; }
@@ -48,7 +89,7 @@ case $cmd in
         echo "hooked: $f"
       fi
     done < <(targets)
-    echo "Restart Discord (tray icon > Quit Discord, then start it) to load the patch."
+    restart_discord
     ;;
   uninstall)
     while IFS= read -r f; do
@@ -60,7 +101,8 @@ case $cmd in
     done < <(targets)
     rm -f "$dest"/loader.js "$dest"/preload.js "$dest"/renderer.js "$dest"/status.json
     rmdir "$dest" 2>/dev/null || true
-    echo "Removed. Restart Discord to unload it."
+    echo "Removed."
+    restart_discord
     ;;
   status)
     while IFS= read -r f; do
@@ -82,7 +124,7 @@ case $cmd in
     exec node "$here/test/check.mjs"
     ;;
   *)
-    echo "usage: $0 [install|status|check|uninstall]" >&2
+    echo "usage: $0 [install|status|check|uninstall] [--no-restart]" >&2
     exit 2
     ;;
 esac

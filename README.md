@@ -40,7 +40,10 @@ git clone <this repo> && cd de-enshittify-discord
 ./install.sh
 ```
 
-Then quit Discord from its tray icon (closing the window isn't enough) and start it again.
+If Discord is running, the installer restarts it so the patch loads. That drops you from any voice
+call; add `--no-restart` to skip it and restart Discord yourself later (quit from the tray icon,
+since closing the window isn't enough). A page reload (Ctrl+R) isn't enough either, because Discord
+only picks up the hook when its main process starts.
 
 About 20 seconds after Discord starts, it writes `%APPDATA%\de-enshittify-discord\status.json` listing
 which patches applied and which ad popups it blocked. `./install.sh status` prints it. If Discord's
@@ -49,11 +52,13 @@ developer tools are enabled, the console shows the same under `[de-enshittify-di
 ## Commands
 
 ```sh
-./install.sh            # install, or re-apply after a Discord desktop update
+./install.sh            # install, or re-apply after a Discord desktop update; restarts Discord
 ./install.sh status     # are the hooks in place? what did the client last report?
 ./install.sh check      # do the patches still match Discord's current web build? (changes nothing)
-./install.sh uninstall  # remove the hooks and the installed files
+./install.sh uninstall  # remove the hooks and the installed files; restarts Discord
 ```
+
+`install` and `uninstall` take `--no-restart` to leave Discord running.
 
 ## After Discord updates
 
@@ -61,7 +66,7 @@ developer tools are enabled, the console shows the same under `[de-enshittify-di
   skipped and reported, and that feature reappears. `./install.sh check` downloads Discord's
   current web build and tests every patch against it without touching your client.
 - **Desktop updates** (a new `app-x.y.z` folder) replace the startup files that load this. Run
-  `./install.sh` again and restart Discord. `./install.sh status` shows whether the hooks are there.
+  `./install.sh` again (it restarts Discord). `./install.sh status` shows whether the hooks are there.
 
 ## How it works
 
