@@ -96,6 +96,11 @@ __d(function (g, r, i, a, m, e, d) {
   D[D.VIRTUAL_CURRENCY_MOBILE_ONBOARDING_PILL = 7] = 'VIRTUAL_CURRENCY_MOBILE_ONBOARDING_PILL';
   D[D.NITRO_TAB_BADGE_COUNTDOWN = 8] = 'NITRO_TAB_BADGE_COUNTDOWN';
   D[D.WHATS_NEW_SOMETHING = 9] = 'WHATS_NEW_SOMETHING';
+  D[D.NAGBAR_NOTICE_PREMIUM_REACTIVATE = 10] = 'NAGBAR_NOTICE_PREMIUM_REACTIVATE';
+  D[D.DISPLAY_NAME_STYLES_FLYWHEEL_MOBILE_PROFILE_COACHMARK = 11] = 'DISPLAY_NAME_STYLES_FLYWHEEL_MOBILE_PROFILE_COACHMARK';
+  D[D.MARVEL_STRIKE_FORCE_ACCOUNT_LINK_UPSELL = 12] = 'MARVEL_STRIKE_FORCE_ACCOUNT_LINK_UPSELL';
+  D[D.GAME_INVITE_ACCOUNT_LINK_UPSELL = 13] = 'GAME_INVITE_ACCOUNT_LINK_UPSELL';
+  D[D.FORUM_CHANNEL_UPSELL_MODAL = 14] = 'FORUM_CHANNEL_UPSELL_MODAL';
   e.DismissibleContent = D;
   r(d[0]).fileFinishedImporting('../discord_common/js/packages/protos/discord_protos/discord_users/v1/dismissible_content.tsx');
 }, 14, [1]);
@@ -137,7 +142,7 @@ const ALL = '[3, 10, 11, 12, 13, 14, 15, 16, 17].forEach(function (id) { __r(id)
 // Values from the vm context have that context's prototypes; compare them as plain JSON.
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
-function run(modules = DISCORD_MODULES) {
+function run(modules = DISCORD_MODULES, options) {
   const logs = [];
   const timers = [];
   const toasts = [];
@@ -146,6 +151,7 @@ function run(modules = DISCORD_MODULES) {
     setTimeout: (fn) => timers.push(fn),
     __turboModuleProxy: (name) => (name === 'ToastAndroid' ? { show: (message) => toasts.push(message) } : null),
   });
+  if (options) vm.runInContext(`globalThis.__deEnshittifyDiscordOptions = ${JSON.stringify(options)};`, context);
   vm.runInContext(SCRIPT, context);
   vm.runInContext(METRO_PRELUDE, context);
   vm.runInContext(modules, context);
@@ -219,7 +225,9 @@ test('every patch applies to modules shaped like Discord\'s', () => {
     'orbs-hidden', 'popup-catalogue', 'popup-gate', 'popup-gate-legacy', 'popup-gate-shown',
     'quest-store-empty', 'quests-hidden', 'shop-button', 'shop-settings-row',
   ]);
-  assert.equal(r.popupTypesBlocked, 3);
+  // MACARON_3P_POPOVER, QUEST_HOME_MOVE_CALLOUT, VIRTUAL_CURRENCY_..., NITRO_TAB_BADGE_COUNTDOWN,
+  // DISPLAY_NAME_STYLES_..., MARVEL_STRIKE_FORCE_ACCOUNT_LINK_UPSELL.
+  assert.equal(r.popupTypesBlocked, 6);
 });
 
 test('quests and Orbs are switched off the way Discord does it on Meta Quest', () => {
@@ -241,12 +249,12 @@ test('the Shop button renders nothing and the Shop settings row is hidden', () =
 test('ad popups are skipped in favour of other popups, and never recorded as shown', () => {
   const { context, report } = run();
   vm.runInContext(ALL, context);
-  // MACARON_3P_POPOVER (an ad) and QUEST_HOME_MOVE_CALLOUT are skipped; the Nitro badge is picked.
-  assert.deepEqual(plain(vm.runInContext('__r(15).useSelectedDismissibleContent([5, 6, 8])', context)), [8, 'dismiss']);
+  // MACARON_3P_POPOVER (an ad) and QUEST_HOME_MOVE_CALLOUT are skipped; the "what's new" one is picked.
+  assert.deepEqual(plain(vm.runInContext('__r(15).useSelectedDismissibleContent([5, 6, 9])', context)), [9, 'dismiss']);
   assert.deepEqual(plain(vm.runInContext('__r(15).useSelectedScopedDismissibleContent([{ content: 7 }, { content: 9 }])', context)), [9, 'dismiss']);
   assert.deepEqual(plain(vm.runInContext('__r(15).useSelectedVersionedDismissibleContent(5)', context)), [null, 'dismiss']);
   assert.deepEqual(plain(vm.runInContext('__r(15).useSelectedVersionedDismissibleContent(9)', context)), [9, 'dismiss']);
-  assert.deepEqual(plain(vm.runInContext('shown', context)), [8, 9, null, 9]);
+  assert.deepEqual(plain(vm.runInContext('shown', context)), [9, 9, null, 9]);
   assert.deepEqual(Object.keys(report().popupsSuppressed).sort(), ['MACARON_3P_POPOVER', 'QUEST_HOME_MOVE_CALLOUT', 'VIRTUAL_CURRENCY_MOBILE_ONBOARDING_PILL']);
 });
 
@@ -254,9 +262,9 @@ test('direct "was it dismissed?" checks say yes for ad popups, and the hook stil
   const { context } = run();
   vm.runInContext(ALL, context);
   assert.equal(vm.runInContext('__r(17).UNSAFE_isDismissibleContentDismissed(5)', context), true);
-  assert.equal(vm.runInContext('__r(17).UNSAFE_isDismissibleContentDismissed(8)', context), false);
+  assert.equal(vm.runInContext('__r(17).UNSAFE_isDismissibleContentDismissed(9)', context), false);
   assert.equal(vm.runInContext('__r(17).useIsDismissibleContentDismissed_UNSAFE(5)', context), true);
-  assert.equal(vm.runInContext('__r(17).useIsDismissibleContentDismissed_UNSAFE(8)', context), false);
+  assert.equal(vm.runInContext('__r(17).useIsDismissibleContentDismissed_UNSAFE(9)', context), false);
   assert.equal(vm.runInContext('hookCalls', context), 2);
 });
 
@@ -272,7 +280,7 @@ test('the startup check names patches that failed', () => {
   const changed = DISCORD_MODULES.replace('QUESTS_FETCH_QUEST_TO_DELIVER_SUCCESS:', 'QUESTS_RENAMED:');
   const { timers, toasts } = run(changed);
   timers.forEach((fn) => fn());
-  assert.deepEqual(toasts, ["de-enshittify 0.3.2: didn't apply: quest-store-empty"]);
+  assert.deepEqual(toasts, ["de-enshittify 0.4.0: didn't apply: quest-store-empty"]);
 });
 
 test('a patch that fails after startup says so right away, by name', () => {
@@ -280,5 +288,30 @@ test('a patch that fails after startup says so right away, by name', () => {
   const { context, timers, toasts } = run(changed);
   timers.forEach((fn) => fn());
   vm.runInContext('__r(12)', context); // the You screen is opened
-  assert.deepEqual(toasts, ["de-enshittify 0.3.2: shop-button didn't apply"]);
+  assert.deepEqual(toasts, ["de-enshittify 0.4.0: shop-button didn't apply"]);
+});
+
+test('Nitro upsells are hidden by default, but not notices about your own subscription', () => {
+  const { context } = run();
+  vm.runInContext(ALL, context);
+  const dismissed = (id) => vm.runInContext(`__r(17).UNSAFE_isDismissibleContentDismissed(${id})`, context);
+  assert.equal(dismissed(8), true); // NITRO_TAB_BADGE_COUNTDOWN
+  assert.equal(dismissed(11), true); // DISPLAY_NAME_STYLES_FLYWHEEL_MOBILE_PROFILE_COACHMARK
+  assert.equal(dismissed(10), false); // NAGBAR_NOTICE_PREMIUM_REACTIVATE
+  assert.equal(dismissed(14), false); // FORUM_CHANNEL_UPSELL_MODAL: a free feature
+});
+
+test('partner game promos are hidden, the game invite account link prompt is not', () => {
+  const { context } = run();
+  vm.runInContext(ALL, context);
+  assert.equal(vm.runInContext('__r(17).UNSAFE_isDismissibleContentDismissed(12)', context), true);
+  assert.equal(vm.runInContext('__r(17).UNSAFE_isDismissibleContentDismissed(13)', context), false);
+});
+
+test('"Hide Nitro upsells" off keeps Nitro popups, and still hides ads', () => {
+  const { context, report } = run(DISCORD_MODULES, { hideNitroUpsells: false });
+  vm.runInContext(ALL, context);
+  assert.equal(vm.runInContext('__r(17).UNSAFE_isDismissibleContentDismissed(11)', context), false);
+  assert.equal(vm.runInContext('__r(17).UNSAFE_isDismissibleContentDismissed(5)', context), true);
+  assert.equal(report().popupTypesBlocked, 4);
 });

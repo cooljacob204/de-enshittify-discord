@@ -13,7 +13,7 @@
   'use strict';
 
   var TAG = '[de-enshittify-discord]';
-  var VERSION = '0.3.2';
+  var VERSION = '0.4.0';
 
   var state = {
     version: VERSION,
@@ -117,11 +117,28 @@
     return null;
   }
 
+  // Patch options, set by the APK patch in front of this script.
+  var OPTIONS = globalThis.__deEnshittifyDiscordOptions || {};
+
   // Ad popups: popup types whose names say they're about quests, Orbs, the Shop, third-party offers or
   // marketing campaigns. The desktop rule plus the mobile-only Orbs (VIRTUAL_CURRENCY), Bounties and
-  // wishlist ones. Discord's own feature notices and Nitro upsells are left alone.
+  // wishlist ones, and partner games' "link your account" promos.
   var BLOCKED_POPUPS =
     /(^|_)(QUESTS?|ORBS?|SHOP|COLLECTIBLES|STOREFRONT|3PP?|MARKETING|PROMOS?|BLACK_FRIDAY|DROPS?|VIRTUAL_CURRENCY|BOUNTY|BOUNTIES|WISHLIST)(_|$)/;
+  var PARTNER_GAME_PROMOS = /^(?!GAME_).*_ACCOUNT_LINK_UPSELL$/;
+  // Nitro upsells ("Hide Nitro upsells" option, on by default): promos for Nitro, Nitro-only features
+  // such as display name styles, trials, server boosts and power-ups, paid server subscriptions,
+  // potions, gifting promos and referral or discount offers. Popups for free features (AutoMod, forum
+  // channels, voice messages, passkeys...) aren't, and neither are notices about your own
+  // subscription (trial ending, reactivate).
+  var NITRO_UPSELLS =
+    /(^|_)(NITRO|PREMIUM|TRIALS?|POTION|BOGO|REFERRAL|DISCOUNT|PERMADECOS|POWERUP|BOOSTS?|BOOSTING|GIFTING_PROMOTION|ROLE_SUBSCRIPTION|SERVER_SUBSCRIPTION|CREATOR_MONETIZATION|MONTHLY_TO_YEARLY|FREE_USER)(_|$)|^DISPLAY_NAME_STYLES/;
+  var SUBSCRIPTION_NOTICES = /^NAGBAR_NOTICE_PREMIUM_(TIER_\w+_TRIAL_ENDING|REACTIVATE)$/;
+
+  function isBlockedPopup(name) {
+    if (BLOCKED_POPUPS.test(name) || PARTNER_GAME_PROMOS.test(name)) return true;
+    return OPTIONS.hideNitroUpsells !== false && NITRO_UPSELLS.test(name) && !SUBSCRIPTION_NOTICES.test(name);
+  }
   var blockedPopups = new Set();
   var popupNames = {};
 
@@ -238,7 +255,7 @@
           var id = types[name];
           if (typeof id !== 'number') return;
           popupNames[id] = name;
-          if (BLOCKED_POPUPS.test(name)) blockedPopups.add(id);
+          if (isBlockedPopup(name)) blockedPopups.add(id);
         });
         state.popupTypesBlocked = blockedPopups.size;
         return blockedPopups.size > 0 || 'no ad popup types found';

@@ -2,6 +2,7 @@ package app.deenshittify.discord
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.patch.booleanOption
 import app.morphe.patcher.patch.mutableClassDefBy
 import app.morphe.patcher.patch.patch
 
@@ -29,11 +30,21 @@ val deEnshittifyPatch = patch(
 ) {
     compatibleWith(DISCORD)
 
+    val hideNitroUpsells by booleanOption(
+        key = "hideNitroUpsells",
+        default = true,
+        title = "Hide Nitro upsells",
+        description = "Also treat popups promoting Nitro, Nitro-only features, boosts and paid server " +
+            "subscriptions as dismissed. Notices about your own subscription are kept.",
+    )
+
     extendWith {
         val script = DeEnshittifyPatch::class.java.getResourceAsStream("/$SCRIPT")
             ?.use { it.readBytes().toString(Charsets.UTF_8) }
             ?: throw PatchException("$SCRIPT is missing from the patches file")
-        dexOf(scriptLoaderClass(script))
+        // The script reads its options from this global.
+        val options = "globalThis.__deEnshittifyDiscordOptions = { hideNitroUpsells: ${hideNitroUpsells != false} };\n"
+        dexOf(scriptLoaderClass(options + script))
     }
 
     execute {

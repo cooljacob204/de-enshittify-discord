@@ -160,10 +160,11 @@ pick that file in Morphe.
 | `orbs-hidden` | Discord's own Orbs switch, also off on Meta Quest, is off: no Orbs Balance card on the You screen and no Orb wallet. |
 | `shop-button` | The Shop button on the You screen is gone. |
 | `shop-settings-row` | The Shop row in Settings is gone. |
-| `popup-catalogue`, `popup-gate`, `popup-gate-shown`, `popup-gate-legacy` | As on Windows: ad popups, coachmarks and badges count as already dismissed, chosen by name from Discord's list of popup types. On Android that also covers Orbs onboarding, Bounties and Shop wishlist tips. Ad popups are never recorded as shown, so they don't use up Discord's daily popup limit. |
+| `popup-catalogue`, `popup-gate`, `popup-gate-shown`, `popup-gate-legacy` | As on Windows: ad popups, coachmarks and badges count as already dismissed, chosen by name from Discord's list of popup types. On Android that also covers Orbs onboarding, Bounties and Shop wishlist tips, and partner games' "link your account" promos. With **Hide Nitro upsells** (on by default) it also covers popups promoting Nitro, Nitro-only features such as display name styles, trials, server boosts, paid server subscriptions, potions, gifting promos and referral or discount offers. Popups for free features and notices about your own subscription (trial ending, reactivate) still show. Blocked popups are never recorded as shown, so they don't use up Discord's daily popup limit. |
 
-Two more options in Morphe: **Change package name** (on by default) makes the patched app a separate
-app named "Discord Renewed" (both names can be changed), and **De-enshittify** is the patch itself.
+In Morphe, **De-enshittify** is the patch above; its **Hide Nitro upsells** option can be turned off.
+**Change package name** (on by default) makes the patched app a separate app named "Discord
+Renewed"; both names can be changed.
 
 Not covered yet: the Wishlist tab and Shop links on profiles, quest cards for quest links in chat,
 and `discord.com/shop` and `discord.com/quests` links.
